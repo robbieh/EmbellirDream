@@ -5,6 +5,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceActivity;
 import android.preference.PreferenceFragment;
+import android.util.Log;
 
 /**
  * A settings Activity for {@link EmbellirDaydreamService}.
@@ -15,9 +16,11 @@ import android.preference.PreferenceFragment;
 @TargetApi(Build.VERSION_CODES.HONEYCOMB)
 public class EmbellirDaydreamServiceSettingsActivity extends PreferenceActivity {
 
+    private static final String TAG = "EmbellirDreamSettings";
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Log.v(TAG,"onCreate()");
 
         getFragmentManager().beginTransaction()
                 .replace(android.R.id.content, new DreamPreferenceFragment()).commit();

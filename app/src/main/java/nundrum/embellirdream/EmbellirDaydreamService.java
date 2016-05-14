@@ -10,11 +10,18 @@ import android.annotation.TargetApi;
 import android.content.SharedPreferences;
 import android.graphics.Point;
 import android.os.Build;
+import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.service.dreams.DreamService;
+import android.view.View;
 import android.view.ViewPropertyAnimator;
 import android.view.animation.LinearInterpolator;
 import android.widget.TextView;
+import android.util.Log;
+
+import java.lang.Runnable;
+
+import nundrum.embellirdream.PolarClockView;
 
 /**
  * This class is a sample implementation of a DreamService. When activated, a
@@ -27,25 +34,25 @@ import android.widget.TextView;
  */
 @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR1)
 public class EmbellirDaydreamService extends DreamService {
-
+    private static final String TAG="EmbellirDream";
     private static final TimeInterpolator sInterpolator = new LinearInterpolator();
     private final Random mRandom = new Random();
     private final Point mPointSize = new Point();
-    private TextView mDreamTextView;
+    private PolarClockView PCView;
     private ViewPropertyAnimator mAnimator;
     private final AnimatorListener mAnimListener = new AnimatorListenerAdapter() {
-
         @Override
         public void onAnimationEnd(Animator animation) {
             // Start animation again
             startTextViewScrollAnimation();
         }
-
     };
+
 
     @Override
     public void onAttachedToWindow() {
         super.onAttachedToWindow();
+        Log.v(TAG, "onAttachedToWindow()");
 
         // Exit dream upon user touch?
         setInteractive(false);
@@ -54,36 +61,45 @@ public class EmbellirDaydreamService extends DreamService {
         setFullscreen(true);
 
         // Keep screen at full brightness?
-        setScreenBright(true);
+        setScreenBright(false);
 
         // Set the content view, just like you would with an Activity.
         setContentView(R.layout.embellir_daydream);
 
-        mDreamTextView = (TextView) findViewById(R.id.dream_text);
-        mDreamTextView.setText(getTextFromPreferences());
+        PCView = (PolarClockView) findViewById(R.id.polar_clock_view);
+//		final Handler viewHandler = new Handler();
+//		final Runnable updateView = new Runnable () {
+//			@Override
+//			public void run() {
+//				PCView.invalidate();
+//				viewHandler.postDelayed(PCView, 1000);
+//			};
+//		};
+
     }
 
     @Override
     public void onDreamingStarted() {
         super.onDreamingStarted();
-
+        Log.v(TAG, "onDreamingStarted()");
         // TODO: Begin animations or other behaviors here.
 
-        startTextViewScrollAnimation();
+        //startTextViewScrollAnimation();
     }
 
     @Override
     public void onDreamingStopped() {
         super.onDreamingStopped();
-
+        Log.v(TAG, "onDreamingStopped()");
         // TODO: Stop anything that was started in onDreamingStarted()
 
-        mAnimator.cancel();
+        //mAnimator.cancel();
     }
 
     @Override
     public void onDetachedFromWindow() {
         super.onDetachedFromWindow();
+        Log.v(TAG, "onDetachedFromWindow()");
 
         // TODO: Dismantle resources
         // (for example, detach from handlers and listeners).
@@ -101,23 +117,26 @@ public class EmbellirDaydreamService extends DreamService {
 
         final int windowWidth = mPointSize.x;
         final int windowHeight = mPointSize.y;
+        final float midW = mPointSize.x / 2;
+        final float midH = mPointSize.y / 2;
+
 
         // Move TextView so it's moved all the way to the left
-        mDreamTextView.setTranslationX(-mDreamTextView.getWidth());
+        //mDreamTextView.setTranslationX(-mDreamTextView.getWidth());
 
         // Move TextView to random y value
-        final int yRange = windowHeight - mDreamTextView.getHeight();
-        mDreamTextView.setTranslationY(mRandom.nextInt(yRange));
+        //final int yRange = windowHeight - mDreamTextView.getHeight();
+        //mDreamTextView.setTranslationY(mRandom.nextInt(yRange));
 
         // Create an Animator and keep a reference to it
-        mAnimator = mDreamTextView.animate().translationX(windowWidth)
-                .setDuration(3000)
-                .setStartDelay(500)
-                .setListener(mAnimListener)
-                .setInterpolator(sInterpolator);
+        //mAnimator = mDreamTextView.animate().translationX(windowWidth)
+        //        .setDuration(3000)
+        //        .setStartDelay(500)
+        //        .setListener(mAnimListener)
+        //        .setInterpolator(sInterpolator);
 
         // Start the animation
-        mAnimator.start();
+        //mAnimator.start();
     }
 
 }
