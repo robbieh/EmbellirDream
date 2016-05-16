@@ -3,6 +3,7 @@
 buildscript {
     repositories {
         jcenter()
+		mavenCentral()
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:2.1.0'
@@ -25,5 +26,9 @@ task clean(type: Delete) {
 task appStart(type: Exec) {
 	// linux 
 	commandLine 'adb', 'shell', 'am', 'start', '-n', '"nundrum.embellirdream/nundrum.embellirdream.EmbellirDaydreamServiceSettingsActivity"' ,'-a', 'android.intent.action.MAIN', '-c', 'android.intent.category.LAUNCHER'
+}
 
+task dream(type: Exec) {
+	// linux 
+	commandLine 'adb', 'shell', 'am', 'start', '-n', '"com.android.systemui/com.android.systemui.Somnambulator"'
 }
