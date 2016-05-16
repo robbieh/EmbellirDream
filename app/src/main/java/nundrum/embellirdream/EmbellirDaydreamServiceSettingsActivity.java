@@ -1,11 +1,14 @@
 package nundrum.embellirdream;
 
+import android.Manifest;
 import android.annotation.TargetApi;
 import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceActivity;
 import android.preference.PreferenceFragment;
 import android.util.Log;
+
+import android.support.v4.app.ActivityCompat;
 
 /**
  * A settings Activity for {@link EmbellirDaydreamService}.
@@ -16,6 +19,7 @@ import android.util.Log;
 @TargetApi(Build.VERSION_CODES.HONEYCOMB)
 public class EmbellirDaydreamServiceSettingsActivity extends PreferenceActivity {
 
+	private static final int MY_PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION = 1;
     private static final String TAG = "EmbellirDreamSettings";
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -25,6 +29,12 @@ public class EmbellirDaydreamServiceSettingsActivity extends PreferenceActivity 
         getFragmentManager().beginTransaction()
                 .replace(android.R.id.content, new DreamPreferenceFragment()).commit();
     }
+	public void onAttachedToWindow() {
+		Log.v(TAG,"onAttachedToWindow()");
+		ActivityCompat.requestPermissions(this,
+				new String[] {Manifest.permission.ACCESS_FINE_LOCATION},
+				MY_PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION);
+	}
 
     public static class DreamPreferenceFragment extends PreferenceFragment {
 
@@ -34,6 +44,9 @@ public class EmbellirDaydreamServiceSettingsActivity extends PreferenceActivity 
             addPreferencesFromResource(R.xml.embellir_daydream_prefs);
         }
 
+
+
     }
+
 
 }

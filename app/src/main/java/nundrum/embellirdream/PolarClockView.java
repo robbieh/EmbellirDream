@@ -1,54 +1,78 @@
 package nundrum.embellirdream;
 
+import android.Manifest;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.RectF;
+import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.ShapeDrawable;
 import android.graphics.drawable.shapes.ArcShape;
-import android.graphics.RectF;
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
+import android.os.Bundle;
 import android.text.TextPaint;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.View;
 
+import android.support.v4.app.ActivityCompat;
+
 import java.util.Calendar;
+
+import com.luckycatlabs.sunrisesunset.SunriseSunsetCalculator;
+
+// notes to self:
+// hour, minute
+// daylight hours
+// date, calendar items
+// weather forecast
 
 /**
  * TODO: document your custom view class.
  */
-public class PolarClockView extends View {
+public class PolarClockView extends View implements LocationListener {
     private final String TAG = "PolarClockView";
-	private final int mCPMain = Color.rgb(0, 220, 20); // Color Primary Main
-	private final int mCPHl = Color.rgb(0, 90, 0); // Color Highlight Main
-	private final int mCPShd = Color.rgb(0, 70, 0); // Color Shadow Main
-	private final int mCPFill = Color.rgb(0, 110, 9); // Color Shadow Main
-	private final int mCSMain = Color.rgb(15, 90, 55); // Color Primary Main
-	private final int mCSHl = Color.rgb(150, 110, 250); // Color Highlight Main
-	private final int mCSShd = Color.rgb(5, 25, 0); // Color Shadow Main
-	private final int mCSFill = Color.rgb(10, 10, 10); // Color Shadow Main
-	private Paint mCPMainPaint;
-	private Paint mCPHlPaint;
-	private Paint mCPShdPaint;
-	private Paint mCPFillPaint;
+    private Context mContext;
+    private final int mCPMain = Color.rgb(0, 220, 20); // Color Primary Main
+    private final int mCPHl = Color.rgb(0, 90, 0); // Color Highlight Main
+    private final int mCPShd = Color.rgb(0, 70, 0); // Color Shadow Main
+    private final int mCPFill = Color.rgb(0, 110, 9); // Color Shadow Main
+    private final int mCSMain = Color.rgb(15, 90, 55); // Secondary
+    private final int mCSHl = Color.rgb(150, 110, 250); // Secondary
+    private final int mCSShd = Color.rgb(5, 25, 0); // Secondary
+    private final int mCSFill = Color.rgb(10, 10, 10); // Secondary
+    private final int mCTMain = Color.rgb(70, 60, 225); // Tertiary 
+    private final int mCTHl = Color.rgb(50, 50, 125); // Tertiary 
+    private Paint mPaint;
 
-	private final float degPer60 = 360.0f / 60.0f;
-	private final float degPer12 = 360.0f / 12.0f;
-	private final float degPer24 = 360.0f / 24.0f;
+
+    private final float degPer60 = 360.0f / 60.0f;
+    private final float degPer12 = 360.0f / 12.0f;
+    private final float degPer24 = 360.0f / 24.0f;
 
     private float mExampleDimension = 0; // TODO: use a default from R.dimen...
     private Drawable mExampleDrawable;
 
+	private double mLat;
+	private double mLon;
+
     public PolarClockView(Context context) {
         super(context);
+        Log.v(TAG, "PolarClockView contstructor, context:" + context);
+        mContext = context;
         init(null, 0);
     }
 
     public PolarClockView(Context context, AttributeSet attrs) {
         super(context, attrs);
+        Log.v(TAG, "PolarClockView contstructor, context: " + context + ", attrs: " + attrs);
+        mContext = context;
         init(attrs, 0);
     }
 
@@ -79,14 +103,7 @@ public class PolarClockView extends View {
         a.recycle();
 
         // Set up a default TextPaint object
-		mCPMainPaint = new Paint(); mCPMainPaint.setColor(mCPMain); 
-		mCPMainPaint.setStyle(Paint.Style.STROKE); mCPMainPaint.setStrokeWidth(10);
-		mCPHlPaint = new Paint(); mCPHlPaint.setColor(mCPHl);
-		mCPHlPaint.setStyle(Paint.Style.STROKE); mCPHlPaint.setStrokeWidth(10);
-		mCPShdPaint = new Paint(); mCPShdPaint.setColor(mCPShd);
-		mCPHlPaint.setStyle(Paint.Style.STROKE); mCPHlPaint.setStrokeWidth(10);
-		mCPFillPaint = new Paint(); mCPFillPaint.setColor(mCPFill);
-		mCPHlPaint.setStyle(Paint.Style.STROKE); mCPHlPaint.setStrokeWidth(10);
+        mPaint = new Paint();
 
         //mTextPaint = new TextPaint();
         //mTextPaint.setFlags(Paint.ANTI_ALIAS_FLAG);
@@ -94,7 +111,29 @@ public class PolarClockView extends View {
 
         // Update TextPaint and text measurements from attributes
         invalidateTextPaintAndMeasurements();
+
+        // Register to receive location events
+		Log.v(TAG, "ACCESS_FINE_LOCATION? " + ActivityCompat.checkSelfPermission(mContext, Manifest.permission.ACCESS_FINE_LOCATION));
+		Log.v(TAG, "ACCESS_COARSE_LOCATION? " + ActivityCompat.checkSelfPermission(mContext, Manifest.permission.ACCESS_COARSE_LOCATION));
+        LocationManager locationManager = (LocationManager) mContext.getSystemService(Context.LOCATION_SERVICE);
+        if  (checkLocationPermission()) {
+			locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000 * 60, 0, this);
+			Log.v(TAG, "location:" + locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER));
+        } else {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+		}
     }
+
+	private boolean checkLocationPermission () {
+		return ((ActivityCompat.checkSelfPermission(mContext, Manifest.permission.ACCESS_FINE_LOCATION)   == PackageManager.PERMISSION_GRANTED)
+		|| (ActivityCompat.checkSelfPermission(mContext, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED));
+	}
 
     private void invalidateTextPaintAndMeasurements() {
         //mTextPaint.setTextSize(mExampleDimension);
@@ -121,15 +160,35 @@ public class PolarClockView extends View {
 		int hour24 = now.get(Calendar.HOUR_OF_DAY);
 		int minute = now.get(Calendar.MINUTE);
 
-		Log.v(TAG, "hour24: " + hour24);
-		Log.v(TAG, "hour: " + hour);
-		Log.v(TAG, "minute: " + minute);
+		float riseDeg = 0.0f;
+		float setDeg = 0.0f;
+
+		if (checkLocationPermission()) {
+			com.luckycatlabs.sunrisesunset.dto.Location sslocation = new com.luckycatlabs.sunrisesunset.dto.Location(String.valueOf(mLat), String.valueOf(mLon));
+			Log.v(TAG, "location:" + sslocation.getLatitude() + ", " + sslocation.getLongitude());
+			SunriseSunsetCalculator calc = new SunriseSunsetCalculator( sslocation, now.getTimeZone()); 
+			Calendar rise = calc.getOfficialSunriseCalendarForDate(now);
+			Calendar set = calc.getOfficialSunsetCalendarForDate(now);
+			Log.v(TAG, "now:" + now);
+			Log.v(TAG, "sunrise:" + rise.get(Calendar.HOUR_OF_DAY) + ":" + rise.get(Calendar.MINUTE));
+			Log.v(TAG, "sunset:" + set.get(Calendar.HOUR_OF_DAY) + ":" + set.get(Calendar.MINUTE));
+			riseDeg = (rise.get(Calendar.HOUR_OF_DAY) * 15 )  + (rise.get(Calendar.MINUTE) * 0.25f);
+			setDeg = (set.get(Calendar.HOUR_OF_DAY) * 15) + (set.get(Calendar.MINUTE) * 0.25f);
+		}
+
+		//Log.v(TAG, "hour24: " + hour24);
+		//Log.v(TAG, "hour: " + hour);
+		//Log.v(TAG, "minute: " + minute);
 
 		// in degrees
 		float minuteDeg =  minute * degPer60;
 		float hourDeg = hour * degPer12;
+		float hour24Deg = hour24 * degPer24 + minute / degPer60 / degPer24;
 		Log.v(TAG, "hourDeg: " + hourDeg);
+		Log.v(TAG, "hour24Deg: " + hour24Deg);
 		Log.v(TAG, "minuteDeg: " + minuteDeg);
+		Log.v(TAG, "riseDeg: " + riseDeg);
+		Log.v(TAG, "setDeg: " + setDeg);
 
         // TODO: consider storing these as member variables to reduce
         // allocations per draw cycle.
@@ -141,16 +200,39 @@ public class PolarClockView extends View {
         int contentWidth = getWidth() - paddingLeft - paddingRight;
         int contentHeight = getHeight() - paddingTop - paddingBottom;
 
-		float hp = size - (size * 0.9f);
-		float mp = size - (size * 0.8f);
+		float ringmax = (radius * 0.1f); //divide into 10 rings
+		float hp = (ringmax * 3f); 
+		float mp = (ringmax * 2f); 
+		float ssp = (ringmax * 4f);
 
 		//RectF r = new RectF(0.0f, 0.0f, size, size);
 
+		// -------- paint -----------
 		canvas.translate(0.5f * getWidth(), 0.5f * getHeight() );
 		canvas.rotate(-90);
 
-        canvas.drawArc(0.0f + hp - radius, 0.0f + hp - radius, radius - hp, radius - hp, 0.0f, hourDeg, false, mCPHlPaint);
-        canvas.drawArc(0.0f + mp - radius, 0.0f + mp - radius, radius - mp, radius - mp, 0.0f, minuteDeg,false, mCPMainPaint);
+		mPaint.setStyle(Paint.Style.STROKE);
+		//'daylight' ring
+		if (checkLocationPermission()) {
+			mPaint.setColor(mCTHl);
+			mPaint.setStrokeWidth(ringmax);
+			canvas.drawArc(0.0f + ssp - radius, 0.0f + ssp - radius, radius - ssp, radius - ssp, riseDeg, setDeg - riseDeg,false, mPaint);
+			mPaint.setColor(mCTMain);
+			mPaint.setStrokeWidth(ringmax - (ringmax * 0.1f));
+			canvas.drawArc(0.0f + ssp - radius, 0.0f + ssp - radius, radius - ssp, radius - ssp, riseDeg, setDeg - riseDeg,false, mPaint);
+		}
+		//24h marker
+		mPaint.setColor(mCSHl);
+		mPaint.setStrokeWidth(ringmax - (ringmax * 0.5f));
+        canvas.drawArc(0.0f + ssp - radius, 0.0f + ssp - radius, radius - ssp, radius - ssp, hour24Deg - 3f , 6f ,false, mPaint);
+		//hour ring
+		mPaint.setColor(mCPHl);
+		mPaint.setStrokeWidth(ringmax / 2);
+        canvas.drawArc(0.0f + hp - radius, 0.0f + hp - radius, radius - hp, radius - hp, 0.0f, hourDeg, false, mPaint);
+		//minute ring
+		mPaint.setColor(mCPMain);
+		mPaint.setStrokeWidth(ringmax / 1.5f);
+        canvas.drawArc(0.0f + mp - radius, 0.0f + mp - radius, radius - mp, radius - mp, 0.0f, minuteDeg,false, mPaint);
         //canvas.drawLine(0.0f, 0.0f, (float) getWidth(), (float) getHeight(), mCPMainPaint);
         //canvas.drawLine(0.0f, (float) getHeight(), (float) getWidth(), 0.0f, mCPHlPaint);
         
@@ -168,6 +250,9 @@ public class PolarClockView extends View {
 
 		this.postInvalidateDelayed(1000);
     }
+
+	private void collectData() {
+	}
 
     /**
      * Gets the example dimension attribute value.
@@ -207,4 +292,15 @@ public class PolarClockView extends View {
     public void setExampleDrawable(Drawable exampleDrawable) {
         mExampleDrawable = exampleDrawable;
     }
+
+	public void onLocationChanged(Location location) {
+		Log.v(TAG,"onLocationChanged(): " + location);
+		mLat = location.getLatitude();
+		mLon = location.getLongitude();
+	}
+
+	public void onStatusChanged(String provider, int status, Bundle extras) {}
+	public void onProviderEnabled(String provider) {}
+	public void onProviderDisabled(String provider) {}
+
 }
