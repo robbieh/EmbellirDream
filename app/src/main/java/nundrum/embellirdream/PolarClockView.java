@@ -7,6 +7,7 @@ import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Path;
 import android.graphics.RectF;
 import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
@@ -184,11 +185,11 @@ public class PolarClockView extends View implements LocationListener {
 		float minuteDeg =  minute * degPer60;
 		float hourDeg = hour * degPer12;
 		float hour24Deg = hour24 * degPer24 + minute / degPer60 / degPer24;
-		Log.v(TAG, "hourDeg: " + hourDeg);
-		Log.v(TAG, "hour24Deg: " + hour24Deg);
-		Log.v(TAG, "minuteDeg: " + minuteDeg);
-		Log.v(TAG, "riseDeg: " + riseDeg);
-		Log.v(TAG, "setDeg: " + setDeg);
+		//Log.v(TAG, "hourDeg: " + hourDeg);
+		//Log.v(TAG, "hour24Deg: " + hour24Deg);
+		//Log.v(TAG, "minuteDeg: " + minuteDeg);
+		//Log.v(TAG, "riseDeg: " + riseDeg);
+		//Log.v(TAG, "setDeg: " + setDeg);
 
         // TODO: consider storing these as member variables to reduce
         // allocations per draw cycle.
@@ -201,9 +202,13 @@ public class PolarClockView extends View implements LocationListener {
         int contentHeight = getHeight() - paddingTop - paddingBottom;
 
 		float ringmax = (radius * 0.1f); //divide into 10 rings
-		float hp = (ringmax * 3f); 
-		float mp = (ringmax * 2f); 
-		float ssp = (ringmax * 4f);
+		float hp = (ringmax * 4f);  //hour
+		float mp = (ringmax * 3f);  //minute
+		float ssp = (ringmax * 5f); //sunrise/sunset/24h
+		float cp = (ringmax * 1f) - (ringmax * 0.5f);  //calendar
+		float dp = (ringmax * 1f) + (ringmax * 0.5f);  //day
+		Log.v(TAG, "cp: "+ cp);
+		Log.v(TAG, "dp: "+ dp);
 
 		//RectF r = new RectF(0.0f, 0.0f, size, size);
 
@@ -235,7 +240,57 @@ public class PolarClockView extends View implements LocationListener {
         canvas.drawArc(0.0f + mp - radius, 0.0f + mp - radius, radius - mp, radius - mp, 0.0f, minuteDeg,false, mPaint);
         //canvas.drawLine(0.0f, 0.0f, (float) getWidth(), (float) getHeight(), mCPMainPaint);
         //canvas.drawLine(0.0f, (float) getHeight(), (float) getWidth(), 0.0f, mCPHlPaint);
-        
+       
+
+
+		// info for drawing calendar ring
+		int day = now.get(Calendar.DAY_OF_MONTH);
+		int lastDay = now.getActualMaximum(Calendar.DAY_OF_MONTH);
+		float degsPerDay = ( 360 / lastDay );
+		float todayDeg =  degsPerDay * day;
+		float startDeg =  degsPerDay * (day - 8);
+		float endDeg =  degsPerDay * (day + 14);
+
+		mPaint.setColor(mCPHl);
+		mPaint.setStrokeWidth(ringmax * 1f);
+        canvas.drawArc(0.0f + cp - radius, 0.0f + cp - radius, radius - cp, radius - cp, startDeg, endDeg - startDeg,false, mPaint);
+		
+		mPaint.setStyle(Paint.Style.FILL);
+
+		Path cogPath = CalendarCogPath(ringmax, ringmax * 0.5f);
+		canvas.rotate(90);
+		canvas.save();
+		canvas.rotate(startDeg);
+		for (float f = startDeg ; f < endDeg ; f+= degsPerDay ) {
+			canvas.rotate(degsPerDay);
+			canvas.save();
+			canvas.translate(0f, - radius + cp);
+			canvas.translate(- ringmax, 0);
+			canvas.drawPath(cogPath, mPaint);
+			//canvas.drawCircle(0,radius - dp ,ringmax * 0.75f,mPaint);
+			canvas.restore();
+		}
+		canvas.restore();
+
+		Log.v(TAG, "day:" + day);
+		Log.v(TAG, "lastDay:" + lastDay);
+		Log.v(TAG, "todayDeg:" + todayDeg);
+		Log.v(TAG, "startDeg:" + startDeg);
+		mPaint.setStrokeWidth(1f);
+        mPaint.setTextAlign(Paint.Align.CENTER);
+        mPaint.setTextSize(40);
+		mPaint.setColor(mCSHl);
+		String dayStr = String.valueOf(day);
+        float mTextWidth = mPaint.measureText(dayStr);
+		canvas.save();
+		canvas.rotate(todayDeg);
+		canvas.translate(0, (- radius + dp));
+		canvas.rotate(180);
+		//canvas.drawCircle(0, (radius - dp), ringmax, mPaint);
+		canvas.drawText(String.valueOf(day), 0, 0, mPaint);
+		canvas.restore();
+
+
 //        canvas.drawText(mExampleString,
 //                paddingLeft + (contentWidth - mTextWidth) / 2,
 //                paddingTop + (contentHeight + mTextHeight) / 2,
@@ -250,6 +305,22 @@ public class PolarClockView extends View implements LocationListener {
 
 		this.postInvalidateDelayed(1000);
     }
+
+	private Path CalendarCogPath (float width, float height) {
+		float w = width * 2.0f;
+		float h = height * 2.0f;
+		float qw = w * 0.125f;
+		Path mPath = new Path();
+		mPath.moveTo(0.0f, 0.0f);
+		mPath.lineTo(w, 0.0f);
+		mPath.lineTo(w, h);
+		mPath.lineTo((w - qw), h);
+		mPath.quadTo((0.5f * w), 0.0f, qw, h);
+		mPath.lineTo(0.0f, h);
+		mPath.lineTo(0.0f, 0.0f);
+		mPath.close();
+		return mPath;
+	}
 
 	private void collectData() {
 	}
@@ -293,6 +364,7 @@ public class PolarClockView extends View implements LocationListener {
         mExampleDrawable = exampleDrawable;
     }
 
+	/* methods for implementing LocationListener */
 	public void onLocationChanged(Location location) {
 		Log.v(TAG,"onLocationChanged(): " + location);
 		mLat = location.getLatitude();
