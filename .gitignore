@@ -7,3 +7,4 @@
 /build
 /captures
 *.s??
+hs_err_pid*.log
